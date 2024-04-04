@@ -1,3 +1,3 @@
 {
-	"Lua.diagnostics.globals": ["Dialog", "app", "zip", "map"]
+	"Lua.diagnostics.globals": ["Dialog", "app", "zip", "map", "Point"]
 }

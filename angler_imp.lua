@@ -20,7 +20,7 @@ function map(tbl, f)
 	return t
 end
 
-local function import_animations(data, tag_color, tag_suffix, layers)
+local function import_animations(data, tag_color)
 	local fs = app.fs
 	local angles = { "up", "down", "left", "right" }
 	local sprites = {}
@@ -52,47 +52,24 @@ local function import_animations(data, tag_color, tag_suffix, layers)
 			::continue::
 		end
 		app.activeSprite = old_sprite
-		tag.fromFrame = app.activeSprite.frames[#app.activeSprite.frames]
+		tag.fromFrame = app.activeSprite.frames[#app.activeSprite.frames + 1]
+		local from_frame_idx = #app.activeSprite.frames
 		for j = 1, #frames[1] do
 			local new_frame = app.activeSprite:newEmptyFrame()
 			for i = 1, #frames do
 				local frame = frames[i][j]
 				local current_layer = app.activeSprite.layers[i]
 				local source_layer = frame.sprite.layers[1]
-				app.activeSprite:newCel(current_layer, frame.frameNumber)
 				local cel = source_layer:cel(frame.frameNumber)
 				app.activeSprite:newCel(current_layer, new_frame.frameNumber, cel.image, cel.position)
 			end
 		end
-		tag.toFrame = app.activeSprite.frames[#app.activeSprite.frames]
+		tag.toFrame = app.activeSprite.frames[#app.activeSprite.frames + 1]
 		app.activeSprite:newEmptyFrame()
 		tag.toFrame = app.activeSprite.frames[#app.activeSprite.frames - 1]
-		--for i, layer in ipairs(app.activeSprite.layers) do
-		--	local property = "layer_" .. i .. "_import_path"
-		--	local path = data[property]
-		--	local dir = fs.filePath(fs.filePath(path))
-
-		--	local angle_dir = fs.joinPath(dir, angle)
-		--	local frame_name = fs.listFiles(angle_dir)[1]
-		--	local frame_path = fs.joinPath(angle_dir, frame_name)
-
-		--	local sprite = app.open(frame_path)
-		--	old_sprite.width = math.max(old_sprite.width, sprite.width)
-		--	old_sprite.height = math.max(old_sprite.height, sprite.height)
-
-		--	old_sprite:newEmptyFrame(1)
-		--	for _, frame in ipairs(sprite.frames) do
-		--		local new_frame = old_sprite:newFrame(frame)
-		--		print(i)
-		--		old_sprite:newCel(layer, frame.frameNumber)
-		--		local cel = sprite.layers[1]:cel(frame.frameNumber)
-		--		old_sprite:newCel(layer, new_frame.frameNumber, cel.image, cel.position)
-		--		tag.toFrame = new_frame
-		--	end
-		--end
+		tag.fromFrame = app.activeSprite.frames[from_frame_idx + 1]
 	end
 
-	-- this doesn't do jack shit
 	for _, sprite in ipairs(sprites) do
 		sprite:close()
 	end
@@ -142,5 +119,5 @@ dialogue:separator()
 
 local data = dialogue:show { hexpand = true }.data
 if data.confirm then
-	import_animations(data, data.tag_color, data.tag_suffix, layers)
+	import_animations(data, data.tag_color)
 end
