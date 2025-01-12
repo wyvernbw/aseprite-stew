@@ -39,11 +39,12 @@ local function import_animations(data, tag_color)
 			local dir = fs.filePath(fs.filePath(path))
 
 			local angle_dir = fs.joinPath(dir, angle)
+			print("angle_dir = " .. angle_dir)
 			local files = fs.listFiles(angle_dir)
 			table.sort(files)
 			local frame_name = files[1]
 			local frame_path = fs.joinPath(angle_dir, frame_name)
-			print(frame_path)
+			print("frame_path = " .. frame_path)
 			local sprite = app.open(frame_path)
 			sprites[#sprites + 1] = sprite
 			old_sprite.width = math.max(old_sprite.width, sprite.width)
@@ -75,49 +76,86 @@ local function import_animations(data, tag_color)
 	end
 end
 
-local dialogue = Dialog()
-local layer_count = 0
 
-dialogue:button {
-	id = "new_layer",
-	text = "new layer",
-	onclick = function()
-		layer_count = layer_count + 1
-		if layer_count > #app.activeSprite.layers then
-			local layer = app.activeSprite:newLayer()
-			layer.name = "Layer " .. layer_count
+if not app.params["batch"] then
+	local dialogue = Dialog()
+	local layer_count = 0
+
+	dialogue:button {
+		id = "new_layer",
+		text = "new layer",
+		onclick = function()
+			layer_count = layer_count + 1
+			if layer_count > #app.activeSprite.layers then
+				local layer = app.activeSprite:newLayer()
+				layer.name = "Layer " .. layer_count
+			end
+			dialogue:file {
+				id = "layer_" .. layer_count .. "_import_path",
+				label = "layer " .. layer_count,
+				title = "choose a folder",
+				open = true,
+				save = false,
+				filename = "",
+				filetypes = "./"
+			}
+			dialogue:separator()
+			dialogue:close()
+			dialogue:show {
+				autoscrollbars = true,
+				hexpand = true
+			}
 		end
-		dialogue:file {
-			id = "layer_" .. layer_count .. "_import_path",
-			label = "layer " .. layer_count,
-			title = "choose a folder",
-			open = true,
-			save = false,
-			filename = "",
-			filetypes = "./"
-		}
-		dialogue:separator()
-		dialogue:close()
-		dialogue:show {
-			autoscrollbars = true,
-			hexpand = true
+	}
+	dialogue:button { id = "confirm", text = "confirm" }
+	dialogue:button { id = "cancel", text = "cancel" }
+	dialogue:entry {
+		id = "tag_name",
+		label = "tag name"
+	}
+	dialogue:color {
+		id = "tag_color",
+		label = "tag color",
+		color = app.Color,
+	}
+	dialogue:separator()
+end
+
+local data
+if app.params["batch"] then
+	print("running in batch mode")
+	data = {
+		tag_name = app.params["tag_name"],
+	}
+	local old_layers = {}
+	for _, layer in ipairs(app.activeSprite.layers) do
+		old_layers[#old_layers + 1] = layer.name
+	end
+	for i = 0, 99 do
+		local layer_path = "layer_" .. i .. "_import_path"
+		local layer_name = "layer_" .. i .. "_name"
+		if app.params[layer_path] and app.params[layer_name] then
+			local layer = app.activeSprite:newLayer()
+			data[layer_name] = app.params[layer_name .. "_layer"]
+			data[layer_path] = app.params[layer_path]
+			layer.name = app.params[layer_name]
+			print("new layer: " .. layer.name)
+		end
+	end
+	for _, layer_name in ipairs(old_layers) do
+		app.activeSprite:deleteLayer(layer_name)
+	end
+	import_animations(data, Color { index = #app.activeSprite.palettes[1] / 2 })
+	if app.params["batch"] then
+		app.command.SaveFile {
+			ui = false
 		}
 	end
-}
-dialogue:button { id = "confirm", text = "confirm" }
-dialogue:button { id = "cancel", text = "cancel" }
-dialogue:entry {
-	id = "tag_name",
-	label = "tag name"
-}
-dialogue:color {
-	id = "tag_color",
-	label = "tag color",
-	color = app.Color,
-}
-dialogue:separator()
+else
+	print("running in dialogue mode")
+	data = dialogue:show { hexpand = true }.data
+end
 
-local data = dialogue:show { hexpand = true }.data
 if data.confirm then
 	import_animations(data, data.tag_color)
 end
